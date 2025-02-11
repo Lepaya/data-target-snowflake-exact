@@ -426,6 +426,12 @@ class SnowflakeConnector(SQLConnector):
         """Get Snowflake COPY statement."""
         formatter = SnowflakeIdentifierPreparer(SnowflakeDialect())
         column_selections = self._get_column_selections(schema, formatter)
+        
+        # Ensure VARCHAR columns use max length
+        for col in column_selections:
+            if isinstance(col["sql_type"], sqlalchemy.types.VARCHAR):
+                col["sql_type"] = sqlalchemy.types.VARCHAR(self.max_varchar_length)
+        
         json_casting_selects = self._format_column_selections(
             column_selections,
             "json_casting",
