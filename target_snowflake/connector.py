@@ -385,8 +385,8 @@ class SnowflakeConnector(SQLConnector):
         
         # Ensure VARCHAR columns use max length
         for col in column_selections:
-            if "VARCHAR" in col["sql_type"]:
-                col["sql_type"] = f"VARCHAR({self.max_varchar_length})"
+            if isinstance(col["sql_type"], sqlalchemy.types.VARCHAR):
+                col["sql_type"] = sqlalchemy.types.VARCHAR(self.max_varchar_length)
         
         json_casting_selects = self._format_column_selections(
             column_selections,
