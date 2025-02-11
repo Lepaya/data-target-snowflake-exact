@@ -371,7 +371,7 @@ class SnowflakeConnector(SQLConnector):
             )
         return column_selections
 
-    def _get_merge_from_stage_statement(  # noqa: ANN202
+    def _get_merge_from_stage_statement(
         self,
         full_table_name: str,
         schema: dict,
@@ -382,12 +382,17 @@ class SnowflakeConnector(SQLConnector):
         """Get Snowflake MERGE statement."""
         formatter = SnowflakeIdentifierPreparer(SnowflakeDialect())
         column_selections = self._get_column_selections(schema, formatter)
+        
+        # Ensure VARCHAR columns use max length
+        for col in column_selections:
+            if "VARCHAR" in col["sql_type"]:
+                col["sql_type"] = f"VARCHAR({self.max_varchar_length})"
+        
         json_casting_selects = self._format_column_selections(
             column_selections,
             "json_casting",
         )
 
-        # use UPPER from here onwards
         formatted_properties = [formatter.format_collation(col) for col in schema["properties"]]
         formatted_key_properties = [formatter.format_collation(col) for col in key_properties]
         join_expr = " and ".join(
@@ -402,6 +407,7 @@ class SnowflakeConnector(SQLConnector):
         )
         dedup_cols = ", ".join(list(formatted_key_properties))
         dedup = f"QUALIFY ROW_NUMBER() OVER (PARTITION BY {dedup_cols} ORDER BY SEQ8() DESC) = 1"
+        
         return (
             text(
                 f"merge into {full_table_name} d using "  # noqa: ISC003, S608
@@ -414,6 +420,7 @@ class SnowflakeConnector(SQLConnector):
             ),
             {},
         )
+
 
     def _get_copy_statement(self, full_table_name, schema, sync_id, file_format):  # noqa: ANN202, ANN001
         """Get Snowflake COPY statement."""
