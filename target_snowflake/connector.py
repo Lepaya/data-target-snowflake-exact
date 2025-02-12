@@ -240,7 +240,10 @@ class SnowflakeConnector(SQLConnector):
         sql_type: sqlalchemy.types.TypeEngine,
     ) -> None:
         """Prepare a column before loading data, ensuring max VARCHAR length."""
-        self.ensure_max_varchar_length(full_table_name)
+        
+        # Ensure VARCHAR columns use max length
+        if isinstance(sql_type, sqlalchemy.types.VARCHAR):
+            sql_type = sqlalchemy.types.VARCHAR(self.max_varchar_length)
         
         formatter = SnowflakeIdentifierPreparer(SnowflakeDialect())
         if '"' in formatter.format_collation(column_name):
@@ -650,6 +653,10 @@ class SnowflakeConnector(SQLConnector):
         Raises:
             NotImplementedError: if altering columns is not supported.
         """
+        # Ensure VARCHAR columns use max length
+        if isinstance(sql_type, sqlalchemy.types.VARCHAR):
+            sql_type = sqlalchemy.types.VARCHAR(self.max_varchar_length)
+        
         try:
             super()._adapt_column_type(full_table_name, column_name, sql_type)
         except Exception:
