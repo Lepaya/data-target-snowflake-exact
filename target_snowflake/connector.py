@@ -213,26 +213,6 @@ class SnowflakeConnector(SQLConnector):
                 raise Exception(msg)  # noqa: TRY002
         return engine
     
-    
-    def ensure_max_varchar_length(self, full_table_name: str) -> None:
-        """Ensures all VARCHAR columns in the target table are set to the maximum length."""
-        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
-        inspector = sqlalchemy.inspect(self._engine)
-        columns = inspector.get_columns(table_name, schema_name)
-        
-        for col_meta in columns:
-            col_name = col_meta["name"]
-            col_type = col_meta["type"]
-            
-            if isinstance(col_type, sqlalchemy.types.VARCHAR):
-                alter_sql = text(
-                    f"ALTER TABLE {full_table_name} ALTER COLUMN {col_name} SET DATA TYPE VARCHAR({self.max_varchar_length})"
-                )
-                
-                with self._connect() as conn, conn.begin():
-                    self.logger.info(f"Altering column {col_name} in {full_table_name} to VARCHAR({self.max_varchar_length})")
-                    conn.execute(alter_sql)
-    
     def prepare_column(
         self,
         full_table_name: str,
