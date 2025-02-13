@@ -291,13 +291,26 @@ class SnowflakeConnector(SQLConnector):
 
     @cached_property
     def jsonschema_to_sql(self) -> JSONSchemaToSQL:
-        # https://docs.snowflake.com/en/sql-reference/intro-summary-data-types.html
+        """Map JSON Schema types to Snowflake column types."""
+
+        # Get default type-mapping from parent class:
         to_sql = super().jsonschema_to_sql
+
+        # ----------------------------------------------
+        # Force all string columns to use our max length:
+        # ----------------------------------------------
+        def string_to_snowflake_varchar(schema_property: dict) -> sqlalchemy.types.TypeEngine:
+            return sqlalchemy.types.VARCHAR(self.max_varchar_length)
+
+        to_sql.register_type_handler("string", string_to_snowflake_varchar)
+
+        # Overwrite or add other custom handlers as needed:
         to_sql.register_type_handler("integer", NUMBER)
         to_sql.register_type_handler("object", VARIANT)
         to_sql.register_type_handler("array", VARIANT)
         to_sql.register_type_handler("number", sct.DOUBLE)
         to_sql.register_format_handler("date-time", TIMESTAMP_NTZ)
+
         return to_sql
 
     def schema_exists(self, schema_name: str) -> bool:
